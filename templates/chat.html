@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="workspace-container" role="main">
+
+    <div class="workspace">
+
+        <!-- CHAT PANE -->
+        <div class="chat-pane">
+
+            <div class="chat-header">
+                <div class="chat-header-content">
+                    <h2 class="chat-title">Legal Assistant</h2>
+
+                    <div class="role-selector">
+                        <label for="role-select">Role:</label>
+                        <select id="role-select" name="role">
+                            <option value="defendant">Defendant</option>
+                            <option value="prosecutor">Prosecutor</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="toolbar">
+                    <button type="button" id="upload-btn" class="toolbar-btn">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>Upload PDF</span>
+                    </button>
+
+                    <button type="button" id="analyze-btn" class="toolbar-btn">
+                        <i class="fas fa-brain"></i>
+                        <span>Analyze</span>
+                    </button>
+
+                    <button type="button" id="draft-btn" class="toolbar-btn">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Draft</span>
+                    </button>
+
+                    <input type="file" name="pdf" id="pdf-input" accept="application/pdf" hidden>
+                </div>
+            </div>
+
+            <div class="chat-box" id="chat-box" aria-live="polite">
+                <div class="message bot fade-in">
+                    Hello! Upload a case PDF or describe your legal situation to begin.
+                </div>
+            </div>
+
+            <form id="chat-form" class="chat-form">
+                <textarea
+                    id="chat-input"
+                    name="message"
+                    placeholder="Type your message... (Shift+Enter = newline)"
+                    rows="1"
+                ></textarea>
+
+                <button type="submit" class="send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+
+        </div>
+
+        <!-- PANEL PANE -->
+        <div class="panel-pane">
+
+            <div class="panel-header">
+                <div class="panel-tabs">
+                    <button class="panel-tab active" data-tab="analysis">
+                        <i class="fas fa-chart-bar"></i> Analysis
+                    </button>
+
+                    <button class="panel-tab" data-tab="cases">
+                        <i class="fas fa-book"></i> Cases
+                    </button>
+
+                    <button class="panel-tab" data-tab="draft">
+                        <i class="fas fa-file-alt"></i> Draft
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-content">
+
+                <!-- ANALYSIS TAB -->
+                <div id="tab-analysis" class="panel-tab-content active">
+                    <div class="panel-section">
+                        <h3>Case Analysis</h3>
+                        <div id="analysis-content">
+                            <p class="empty-state">No analysis yet. Upload a PDF or start chatting.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CASES TAB -->
+                <div id="tab-cases" class="panel-tab-content">
+                    <div class="panel-section">
+                        <h3>CourtListener Results</h3>
+                        <div id="cases-content">
+                            <p class="empty-state">No case law yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DRAFT TAB -->
+                <div id="tab-draft" class="panel-tab-content">
+                    <div class="panel-section">
+                        <h3>Legal Document</h3>
+
+                        <div class="draft-controls">
+                            <select id="draft-type">
+                                <option value="memo">Memo</option>
+                                <option value="brief">Brief</option>
+                            </select>
+
+                            <button id="draft-generate-btn" class="draft-generate-btn">
+                                Generate Document
+                            </button>
+
+                            <button id="draft-download-btn" class="draft-download-btn" style="display:none;">
+                                Download PDF
+                            </button>
+                        </div>
+
+                        <div id="draft-content" class="draft-content">
+                            <p class="empty-state">Generate a memo or brief.</p>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

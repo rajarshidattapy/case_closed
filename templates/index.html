@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="chat-container" role="main" aria-labelledby="chat-title">
+
+    <div class="chat-header">
+        <p id="chat-title" class="subtitle">Your AI legal research assistant</p>
+    </div>
+
+    <div class="chat-box" id="chat-box" aria-live="polite">
+        <div class="message bot fade-in">
+            Hello! Upload a case PDF or ask a legal question to begin.
+        </div>
+    </div>
+
+    <form id="upload-form" class="upload-form" onsubmit="return false;">
+        <input type="file" name="pdf" id="pdf-input" accept="application/pdf" hidden>
+
+        <button type="button" id="upload-btn" class="upload-btn">
+            <i class="fas fa-file-pdf"></i> Upload PDF
+        </button>
+    </form>
+
+    <form id="chat-form" class="chat-form" autocomplete="off">
+        <input
+            type="text"
+            id="chat-input"
+            name="message"
+            placeholder="Type your message..."
+            autocomplete="off"
+        >
+        <button type="submit">Send <i class="fas fa-paper-plane"></i></button>
+    </form>
+
+</div>
+{% endblock %}
