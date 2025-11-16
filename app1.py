@@ -14,17 +14,17 @@ from pdfminer.high_level import extract_text
 # LOAD ENVIRONMENT
 # =====================================================
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 COURTLISTENER_TOKEN = os.getenv("COURTLISTENER_TOKEN")
 
 # =====================================================
-# OPENAI RAW HTTP CLIENT (Python 3.14 SAFE)
+# OPENROUTER RAW HTTP CLIENT
 # =====================================================
 
-class OpenAIHTTPClient:
+class OpenRouterHTTPClient:
     def __init__(self, api_key):
         self.api_key = api_key
-        self.url = "https://api.openai.com/v1/chat/completions"
+        self.url = "https://openrouter.ai/api/v1/chat/completions"
 
     def chat(self, model, messages, temperature=0):
         headers = {
@@ -44,7 +44,8 @@ class OpenAIHTTPClient:
         return data["choices"][0]["message"]["content"]
 
 
-client = OpenAIHTTPClient(OPENAI_API_KEY)
+# Global OpenRouter client
+client = OpenRouterHTTPClient(OPENROUTER_API_KEY)
 
 
 # =====================================================
@@ -61,16 +62,17 @@ ALLOWED_EXTENSIONS = {"pdf"}
 # AGENT FOUNDATION
 # =====================================================
 
+DEFAULT_MODEL = "google/gemma-3-27b-it:free"
+
 class Agent:
     """Base class for all agents."""
-    def __init__(self, name, role_description, model="gpt-4o-mini"):
+    def __init__(self, name, role_description, model=DEFAULT_MODEL):
         self.name = name
         self.role = role_description
         self.model = model
         self.memory = []  # Agent-level memory (local only)
 
     def ask(self, prompt):
-        # Construct messages
         messages = [{"role": "system", "content": self.role}]
 
         for m in self.memory:
@@ -172,7 +174,7 @@ class LegalOrchestrator:
         self.scorer = ScorerAgent()
         self.drafter = DrafterAgent()
 
-    # Step 1 — Clarify missing facts
+    # Step 1 — Clarify
     def clarify(self, text):
         return self.clarifier.ask(f"Case description:\n{text}")
 
@@ -198,27 +200,12 @@ class LegalOrchestrator:
 
     # Step 5 — CourtListener search
     def courtlistener_search(self, keywords):
-        """
-        Search CourtListener v4 with extra options.
-
-        Parameters
-        - keywords: main query string (required)
-        - page: pagination page number (default 1)
-        - page_size: number of results per page (default 10)
-        - court: optional court slug to filter results
-        - court_id: optional court id to filter results
-        - start_date / end_date: optional date range (YYYY-MM-DD) to filter decision_date
-        - extra_filters: dict of additional query params to pass through
-
-        Returns a list of simplified result dicts.
-        """
         url = "https://www.courtlistener.com/api/rest/v4/search/"
         headers = {}
 
         if COURTLISTENER_TOKEN:
             headers["Authorization"] = f"Token {COURTLISTENER_TOKEN}"
 
-        # default pagination and sensible defaults
         def _build_params(keywords, page=1, page_size=10, court=None, court_id=None,
                           start_date=None, end_date=None, extra_filters=None):
             params = {
@@ -227,14 +214,11 @@ class LegalOrchestrator:
                 "page_size": page_size
             }
 
-            # court filtering: API supports `court` (slug) or `court__id` in some setups
             if court:
                 params["court"] = court
             if court_id:
                 params["court__id"] = court_id
 
-            # date range filtering on the decision date. CourtListener accepts different
-            # date filter syntaxes; use commonly supported parameter names if available.
             if start_date:
                 params["decision_date__gte"] = start_date
             if end_date:
@@ -245,9 +229,7 @@ class LegalOrchestrator:
 
             return params
 
-        # Allow callers to pass a string or a dict for keywords to support advanced queries.
         if isinstance(keywords, dict):
-            # unpack a richer set of search options
             k = keywords.get("q") or ""
             page = keywords.get("page", 1)
             page_size = keywords.get("page_size", 10)
@@ -258,7 +240,6 @@ class LegalOrchestrator:
             extra_filters = keywords.get("extra_filters")
             params = _build_params(k, page, page_size, court, court_id, start_date, end_date, extra_filters)
         else:
-            # simple call with defaults
             params = _build_params(keywords)
 
         try:
@@ -266,7 +247,6 @@ class LegalOrchestrator:
             r.raise_for_status()
             data = r.json()
         except requests.exceptions.RequestException as e:
-            # network / API error — return empty list and include an error placeholder
             return [{"title": "CourtListener error", "snippet": str(e), "pdf_link": "", "citation": "", "decision_date": ""}]
 
         results = []
@@ -423,11 +403,11 @@ def chat():
     summary = orchestrator.summarize(ctx["text"])
     ctx["summary"] = summary
 
-    # STEP 4 — 5 search keywords
+    # STEP 4 — Keywords
     keywords = orchestrator.generate_query(summary, analysis)
     ctx["queries"].append(keywords)
 
-    # STEP 5 — CourtListener
+    # STEP 5 — CourtListener search
     cases = orchestrator.courtlistener_search(keywords)
 
     # STEP 6 — Score
